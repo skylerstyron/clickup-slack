@@ -40,12 +40,14 @@ router.get('/fetch-channels', async (req, res) => {
     }
 });
 
-
 // Fetch ClickUp folders and lists and store in MongoDB
 router.get('/fetch-clickup-data', async (req, res) => {
     try {
         console.log('Fetching ClickUp Lists...');
         const folders = await getClickUpFolders();
+
+        // Clear the existing collection
+        await ClickUpList.deleteMany({});
 
         for (const folder of folders) {
             const lists = await getClickUpLists(folder.id);
@@ -56,28 +58,11 @@ router.get('/fetch-clickup-data', async (req, res) => {
             }));
 
             for (const list of listInfo) {
-                // Find the corresponding document in the database by listId
-                const existingList = await ClickUpList.findOne({ listId: list.id });
-
-                if (existingList) {
-                    // If the document exists, check if the listName has been modified
-                    if (existingList.listName !== list.name) {
-                        // Update the listName in the database
-                        await ClickUpList.findOneAndUpdate(
-                            { listId: list.id },
-                            { listName: list.name }
-                        );
-                        console.log('Updated list name: ' + list.name);
-                    }
-                } else {
-                    // If the document doesn't exist, create a new one
-                    const clickUpList = new ClickUpList({
-                        listId: list.id,
-                        listName: list.name,
-                    });
-                    await clickUpList.save();
-                    console.log('Added list: ' + list.name);
-                }
+                const clickUpList = new ClickUpList({
+                    listId: list.id,
+                    listName: list.name,
+                });
+                await clickUpList.save();
             }
         }
 
@@ -87,7 +72,6 @@ router.get('/fetch-clickup-data', async (req, res) => {
         res.status(500).json({ error: 'An error occurred' });
     }
 });
-
 
 // Define the ClickUp webhook route
 router.post('/clickup-webhook', async (req, res) => {

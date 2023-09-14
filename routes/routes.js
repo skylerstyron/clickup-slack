@@ -43,10 +43,8 @@ router.get('/fetch-channels', async (req, res) => {
 // Fetch ClickUp folders and lists and store in MongoDB
 router.get('/fetch-clickup-data', async (req, res) => {
     try {
-
         console.log('Fetching ClickUp Lists...');
         const folders = await getClickUpFolders();
-
 
         for (const folder of folders) {
             const lists = await getClickUpLists(folder.id);
@@ -57,11 +55,18 @@ router.get('/fetch-clickup-data', async (req, res) => {
             }));
 
             for (const list of listInfo) {
-                const clickUpList = new ClickUpList({
-                    listId: list.id,
-                    listName: list.name,
-                });
-                await clickUpList.save();
+                // Check if a document with the same listId exists
+                const existingList = await ClickUpList.findOne({ listId: list.id });
+
+                if (!existingList) {
+                    // If the document doesn't exist, create a new one
+                    const clickUpList = new ClickUpList({
+                        listId: list.id,
+                        listName: list.name,
+                    });
+                    await clickUpList.save();
+                    console.log('Added list: ' + list.name);
+                }
             }
         }
 
@@ -71,6 +76,7 @@ router.get('/fetch-clickup-data', async (req, res) => {
         res.status(500).json({ error: 'An error occurred' });
     }
 });
+
 
 // Define the ClickUp webhook route
 router.post('/clickup-webhook', async (req, res) => {
@@ -95,9 +101,9 @@ router.post('/clickup-webhook', async (req, res) => {
 
         const listName = await findListNameByListId(listId);
         // console.log('listName: ' + listName);
-        
+
         const channelId = await findChannelNameByListName(listName);
-        
+
         if (!channelId) {
             console.error('Channel not found for listName:', listName);
             res.sendStatus(400); // Send a Bad Request response

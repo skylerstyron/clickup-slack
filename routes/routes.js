@@ -43,9 +43,7 @@ router.get('/fetch-channels', async (req, res) => {
 // Fetch ClickUp folders and lists and store in MongoDB
 router.get('/fetch-clickup-data', async (req, res) => {
     try {
-        // Clear the existing collection
-        await ClickUpList.deleteMany({});
-        
+
         console.log('Fetching ClickUp Lists...');
         const folders = await getClickUpFolders();
 

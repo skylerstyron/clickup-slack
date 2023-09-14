@@ -20,7 +20,7 @@ const connectDB = async () => {
         });
 
         conn.connection.on('connected', () => {
-            console.log(`MongoDB Connected: ${conn.connection.host}`);
+            console.log('DB Connected');
             // Start the server after successful database connection
             app.listen(PORT, () => {
                 console.log("Listening for requests");

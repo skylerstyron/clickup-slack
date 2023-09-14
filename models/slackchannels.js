@@ -23,12 +23,16 @@ const findChannelNameByListName = async (listName) => {
       const regEx = /\((.*?) ?-/;
       const fallbackMatch = listName.match(regEx);
 
-      const matchedChannelFallback = await Channel.findOne({
-        channelName: { $regex: `^-${prefix}`, $options: 'i' },
-      });
-      console.log('Fallback Channel: ' + matchedChannelFallback.channelName);
+      if (fallbackMatch) {
+        const prefix2 = fallbackMatch[1].toLowerCase();
+        const matchedChannelFallback = await Channel.findOne({
+          channelName: { $regex: `^-${prefix2}`, $options: 'i' },
+        });
+        console.log('Fallback Channel: ' + matchedChannelFallback.channelName);
 
-      return matchedChannelFallback ? matchedChannelFallback.channelId : null;
+        return matchedChannelFallback ? matchedChannelFallback.channelId : null;
+      }
+
     }
 
   } catch (error) {

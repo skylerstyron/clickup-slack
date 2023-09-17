@@ -19,26 +19,38 @@ router.get('/fetch-channels', async (req, res) => {
             return !channel.is_archived && channel.name.match(/-([A-Za-z]{3})-(\d{4})/g);
         });
 
-        const channelInfo = filteredChannels.map(channel => ({
-            id: channel.id,
-            name: channel.name,
-        }));
-
-        // Store matching channels in MongoDB
         for (const channel of filteredChannels) {
-            const newChannel = new Channel({
-                channelId: channel.id,
-                channelName: channel.name,
-            });
-            await newChannel.save();
+            // Check if a document with the same channelId exists
+            const existingChannel = await Channel.findOne({ channelId: channel.id });
+
+            if (existingChannel) {
+                // If the document exists, do nothing or update as needed
+                // For example, you can update the name if it has changed
+                if (existingChannel.channelName !== channel.name) {
+                    await Channel.findOneAndUpdate(
+                        { channelId: channel.id },
+                        { channelName: channel.name }
+                    );
+                    console.log('Updated channel name: ' + channel.name);
+                }
+            } else {
+                // If the document doesn't exist, create a new one
+                const newChannel = new Channel({
+                    channelId: channel.id,
+                    channelName: channel.name,
+                });
+                await newChannel.save();
+                console.log('Added channel: ' + channel.name);
+            }
         }
 
-        res.json({ message: 'Active channels matching regex stored successfully' });
+        res.json({ message: 'Active channels matching regex stored/updated successfully' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'An error occurred' });
     }
 });
+
 
 // Fetch ClickUp folders and lists and store in MongoDB
 router.get('/fetch-clickup-data', async (req, res) => {
@@ -120,6 +132,41 @@ router.post('/clickup-webhook', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'An error occurred' });
+    }
+});
+
+router.get('/stored-lists', async (req, res) => {
+    try {
+        const lists = await ClickUpList.find({});
+        res.status(200).json(lists);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message});
+    }
+})
+
+router.post('/update-list', async (req, res) => {
+    try {
+        const response = req.body;
+        const listId = response.list_id;
+        const updatedName = response.history_items[0].after;
+       
+        const list = await ClickUpList.findOneAndUpdate(
+            { listId: listId },
+            { $set: { listName: updatedName } },
+            { new: true }
+        );
+
+        if (!list) {
+            console.log('No list with Id: ' + listId);
+            return res.status(404).json({ message: 'Couldn\'t find a list with matching ID.' });
+        }
+
+        console.log('Updated List: ' + list.listName);
+        res.status(200).json({ message: 'List updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while processing the request.' });
     }
 });
 

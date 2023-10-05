@@ -28,10 +28,13 @@ const getChannels = async () => {
     return allChannels;
 };
 
+
 const formatCommentForSlackMentions = (comment) => {
     const mentionRegex = /@(\w+)/g;
-    return comment.replace(mentionRegex, '<@$1>').toLowerCase();
+    const formattedComment = comment.replace(mentionRegex, (username) => `<${username.toLowerCase()}>`);
+    return formattedComment;
 };
+
 
 const postMessageToSlack = async (channelID, taskURL, taskName, messageText, user) => {
     try {

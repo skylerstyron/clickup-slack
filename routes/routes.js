@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { getChannels, postMessageToSlack, formatCommentForSlackMentions } = require('../slackAPI');
-const { getClickUpFolders, getClickUpLists, getClickUpTaskInfo } = require('../clickUpAPI');
+const { getClickUpFolders, getClickUpLists, getClickUpTaskInfo, postTaskComment } = require('../clickUpAPI');
 const { findListNameByListId } = require('../models/clickuplists');
 const { findChannelNameByListName } = require('../models/slackchannels');
-const { Channel, ClickUpList } = require('../mongoDB');
+const { Channel, ClickUpList, TaskThreads } = require('../mongoDB');
 
 
 
@@ -51,6 +51,46 @@ router.get('/fetch-channels', async (req, res) => {
     }
 });
 
+router.post('/slack-event', async (req, res) => {
+    try {
+        const { challenge, type } = req.body;
+
+        if (type === 'url_verification') {
+
+            res.status(200).send(challenge);
+        } else {
+            const body = req.body;
+            const ts = body.event.ts;
+            const event_ts = body.event.event_ts;
+            const commentText = body.event.text;
+            const thread_ts = body.event.thread_ts;
+
+            // console.log(body);
+
+            if (!body.event.bot_profile) {
+                console.log("User Comment:" + commentText);
+                const taskThread = await TaskThreads.findOne({ parentTs: thread_ts });
+
+                if (taskThread) {
+                    const taskId = taskThread.taskId;
+                    await postTaskComment(taskId, commentText);
+                    console.log('Posted message to: ' + taskId);
+                }
+
+                // Post Message to Clickup Task
+            } else {
+                console.log("BOT COMMENT");
+
+            }
+            res.status(200).send('Received');
+        }
+
+    } catch (error) {
+        console.error('Error while processing Slack event: ', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 // Fetch ClickUp folders and lists and store in MongoDB
 router.get('/fetch-clickup-data', async (req, res) => {
@@ -89,7 +129,6 @@ router.get('/fetch-clickup-data', async (req, res) => {
     }
 });
 
-
 // Define the ClickUp webhook route
 router.post('/clickup-webhook', async (req, res) => {
     try {
@@ -100,13 +139,18 @@ router.post('/clickup-webhook', async (req, res) => {
         const taskId = webhookData.comment.parent;
         const user = webhookData.user.username;
 
+        if (comment.includes("[API_COMMENT]")) {
+            console.log("This comment originated from the API. Skipping processing.");
+            res.sendStatus(200);
+            return;
+        }
 
         const taskInfo = await getClickUpTaskInfo(taskId);
 
         if (!taskInfo) {
-            console.error('Task info is null or undefined.');
-            res.sendStatus(400); // Send a Bad Request response
-            return;
+            const error = 'Task info is null or undefined.';
+            console.error(error);
+            res.status(500).json({ error }); // Send a Bad Request response
         }
 
         const { name: taskName, url: taskURL } = taskInfo;
@@ -117,16 +161,18 @@ router.post('/clickup-webhook', async (req, res) => {
         const channelId = await findChannelNameByListName(listName);
 
         if (!channelId) {
-            console.error('Channel not found for listName:', listName);
-            res.sendStatus(400); // Send a Bad Request response
-            return;
+            const error = 'Channel not found for listName: ' + listName;
+            console.error(error);
+            res.status(500).json({ error }); // Send a Bad Request response
         }
+        
         // console.log('channelId: ' + channelId);
 
         const formattedComment = formatCommentForSlackMentions(comment);
 
+
         // Send a message to Slack channel
-        postMessageToSlack(channelId, taskURL, taskName, formattedComment, user);
+        postMessageToSlack(channelId, taskURL, taskId, taskName, formattedComment, user);
 
         res.sendStatus(200); // Send a 200 OK response
     } catch (error) {
@@ -141,7 +187,7 @@ router.get('/stored-lists', async (req, res) => {
         res.status(200).json(lists);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: error.message});
+        res.status(500).json({ error: error.message });
     }
 })
 
@@ -150,7 +196,7 @@ router.post('/update-list', async (req, res) => {
         const response = req.body;
         const listId = response.list_id;
         const updatedName = response.history_items[0].after;
-       
+
         const list = await ClickUpList.findOneAndUpdate(
             { listId: listId },
             { $set: { listName: updatedName } },
@@ -169,6 +215,7 @@ router.post('/update-list', async (req, res) => {
         res.status(500).json({ error: 'An error occurred while processing the request.' });
     }
 });
+
 
 module.exports = router;
 

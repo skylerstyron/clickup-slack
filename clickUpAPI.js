@@ -47,4 +47,24 @@ const getClickUpTaskInfo = async (taskId) => {
     }
 }
 
-module.exports = { getClickUpFolders, getClickUpLists, getClickUpTaskInfo };
+const postTaskComment = async (taskID, commentText) => {
+    try {
+        const response = axios.post(`${CLICKUP_URL}task/${taskID}/comment`, {
+            "comment_text": `${commentText} [API_COMMENT]`,
+            "notify_all": false,
+            "botComment": true
+        },
+        {
+          headers: {
+            Authorization: token,
+          },
+        });
+
+        console.log('Comment posted successfully:', response.data);
+    } catch (error) {
+        console.error('Error posting comment to ClickUp:', error.message);
+        throw error;
+    }
+}
+
+module.exports = { getClickUpFolders, getClickUpLists, getClickUpTaskInfo, postTaskComment };

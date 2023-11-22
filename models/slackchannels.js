@@ -37,7 +37,7 @@ const findChannelNameByListName = async (listName) => {
 
   } catch (error) {
     console.error('Error finding Slack channel by list name:', error);
-    throw error; // Rethrow the error for higher-level error handling
+    throw error; 
   }
 };
 

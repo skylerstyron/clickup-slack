@@ -19,7 +19,12 @@ const listSchema = new mongoose.Schema({
 
 const ClickUpList = mongoose.model('ClickUpList', listSchema);
 
+const taskThreads = new mongoose.Schema({
+    taskId: String,
+    parentTs: String,
+});
 
+const TaskThreads = mongoose.model('TaskThreads', taskThreads);
 
-module.exports = { Channel, ClickUpList };
+module.exports = { Channel, ClickUpList, TaskThreads };
 

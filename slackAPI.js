@@ -107,7 +107,7 @@ const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, 
                             "type": "section",
                             "text": {
                                 "type": "mrkdwn",
-                                "text": `${messageText} from test`
+                                "text": `${messageText}`
                             }
                         },
                         {

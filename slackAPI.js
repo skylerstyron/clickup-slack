@@ -80,11 +80,11 @@ const createThreadMessageData = (channelID, taskURL, taskName) => {
     };
 };
 
-const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, messageText, user) => {
+const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageText, user) => {
     const taskThreads = await TaskThreads.findOne({ taskId: taskId });
 
     if (!taskThreads) {
-        const messageData = createThreadMessageData(channelID, taskURL, taskName);
+        let messageData = createThreadMessageData(channelID, taskURL, taskName);
         const thread_ts = await postMessage(channelID, messageData);
 
         // Only if the message was successfully posted, create a TaskThreads entry.
@@ -93,10 +93,10 @@ const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, 
             parentTs: thread_ts,
         });
         await taskThread.save();
-        console.log('Added TaskThread for task: ' + taskId);
+        console.log('Added TaskThread for task: ' + taskName);
 
         // Post the threaded reply.
-        const replyMessageData = {
+        messageData = {
             channel: channelID,
             thread_ts: thread_ts,
             "attachments": [
@@ -122,7 +122,7 @@ const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, 
             ],
         };
 
-        await postMessage(channelID, replyMessageData);
+        await postMessage(channelID, messageData);
 
     } else {
         const thread_ts = taskThreads.parentTs;
@@ -137,7 +137,7 @@ const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, 
                             "type": "section",
                             "text": {
                                 "type": "mrkdwn",
-                                "text": `${messageText}`
+                                "text": `${messageText} FROM TEST`
                             }
                         },
                         {

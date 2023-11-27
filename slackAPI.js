@@ -80,51 +80,50 @@ const createThreadMessageData = (channelID, taskURL, taskName) => {
     };
 };
 
-const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageText, user) => {
+const postMessageToSlack = async (channelID, listId, taskURL, taskId, taskName, messageText, user) => {
     const taskThreads = await TaskThreads.findOne({ taskId: taskId });
 
     if (!taskThreads) {
         const messageData = createThreadMessageData(channelID, taskURL, taskName);
         const thread_ts = await postMessage(channelID, messageData);
 
-        if (thread_ts) {
-            // Only if the message was successfully posted, create a TaskThreads entry.
-            const taskThread = new TaskThreads({
-                taskId: taskId,
-                parentTs: thread_ts,
-            });
-            await taskThread.save();
-            console.log('Added TaskThread for task: ' + taskId);
+        // Only if the message was successfully posted, create a TaskThreads entry.
+        const taskThread = new TaskThreads({
+            taskId: taskId,
+            parentTs: thread_ts,
+        });
+        await taskThread.save();
+        console.log('Added TaskThread for task: ' + taskId);
 
-            // Post the threaded reply.
-            const replyMessageData = {
-                channel: channelID,
-                thread_ts: thread_ts,
-                "attachments": [
-                    {
-                        "color": "#f2c744",
-                        "blocks": [
-                            {
-                                "type": "section",
-                                "text": {
-                                    "type": "mrkdwn",
-                                    "text": `${messageText}`
-                                }
-                            },
-                            {
-                                "type": "section",
-                                "text": {
-                                    "type": "mrkdwn",
-                                    "text": `by ${user}`
-                                }
+        // Post the threaded reply.
+        const replyMessageData = {
+            channel: channelID,
+            thread_ts: thread_ts,
+            "attachments": [
+                {
+                    "color": "#f2c744",
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": `${messageText} from test`
                             }
-                        ]
-                    }
-                ],
-            };
+                        },
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": `by ${user}`
+                            }
+                        }
+                    ]
+                }
+            ],
+        };
 
-            await postMessage(channelID, replyMessageData);
-        }
+        await postMessage(channelID, replyMessageData);
+
     } else {
         const thread_ts = taskThreads.parentTs;
         const replyMessageData = {

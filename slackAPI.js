@@ -87,6 +87,7 @@ const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageT
         let messageData = createThreadMessageData(channelID, taskURL, taskName);
         const thread_ts = await postMessage(channelID, messageData);
 
+
         // Only if the message was successfully posted, create a TaskThreads entry.
         const taskThread = new TaskThreads({
             taskId: taskId,
@@ -137,7 +138,7 @@ const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageT
                             "type": "section",
                             "text": {
                                 "type": "mrkdwn",
-                                "text": `${messageText} FROM TEST`
+                                "text": `${messageText}`
                             }
                         },
                         {

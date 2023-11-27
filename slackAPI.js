@@ -86,44 +86,47 @@ const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageT
     if (!taskThreads) {
         let messageData = createThreadMessageData(channelID, taskURL, taskName);
         const thread_ts = await postMessage(channelID, messageData);
+        console.log(thread_ts);
 
+        if (thread_ts) {
 
-        // Only if the message was successfully posted, create a TaskThreads entry.
-        const taskThread = new TaskThreads({
-            taskId: taskId,
-            parentTs: thread_ts,
-        });
-        await taskThread.save();
-        console.log('Added TaskThread for task: ' + taskName);
+            // Only if the message was successfully posted, create a TaskThreads entry.
+            const taskThread = new TaskThreads({
+                taskId: taskId,
+                parentTs: thread_ts,
+            });
+            await taskThread.save();
+            console.log('Added TaskThread for task: ' + taskName);
 
-        // Post the threaded reply.
-        messageData = {
-            channel: channelID,
-            thread_ts: thread_ts,
-            "attachments": [
-                {
-                    "color": "#f2c744",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": `${messageText}`
+            // Post the threaded reply.
+            messageData = {
+                channel: channelID,
+                thread_ts: thread_ts,
+                "attachments": [
+                    {
+                        "color": "#f2c744",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `${messageText}`
+                                }
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `by ${user}`
+                                }
                             }
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": `by ${user}`
-                            }
-                        }
-                    ]
-                }
-            ],
-        };
+                        ]
+                    }
+                ],
+            };
 
-        await postMessage(channelID, messageData);
+            await postMessage(channelID, messageData);
+        }
 
     } else {
         const thread_ts = taskThreads.parentTs;

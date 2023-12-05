@@ -172,7 +172,7 @@ router.post('/clickup-webhook', async (req, res) => {
 
 
         // Send a message to Slack channel
-        postMessageToSlack(channelId, taskURL, taskId, taskName, formattedComment, user);
+        await postMessageToSlack(channelId, taskURL, taskId, taskName, formattedComment, user);
 
         res.sendStatus(200); // Send a 200 OK response
     } catch (error) {

@@ -81,16 +81,14 @@ const createThreadMessageData = (channelID, taskURL, taskName) => {
 };
 
 const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageText, user) => {
-    const taskThreads = await TaskThreads.findOne({ taskId: taskId });
+    try {
+        const taskThreads = await TaskThreads.findOne({ taskId: taskId });
 
-    if (!taskThreads) {
-        let messageData = createThreadMessageData(channelID, taskURL, taskName);
-        const thread_ts = await postMessage(channelID, messageData);
-        console.log(thread_ts);
+        if (!taskThreads) {
+            let messageData = createThreadMessageData(channelID, taskURL, taskName);
+            const thread_ts = await postMessage(channelID, messageData);
+            console.log(thread_ts);
 
-        if (thread_ts) {
-
-            // Only if the message was successfully posted, create a TaskThreads entry.
             const taskThread = new TaskThreads({
                 taskId: taskId,
                 parentTs: thread_ts,
@@ -126,39 +124,44 @@ const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageT
             };
 
             await postMessage(channelID, messageData);
+
+        } else {
+            const thread_ts = taskThreads.parentTs;
+            const replyMessageData = {
+                channel: channelID,
+                thread_ts: thread_ts,
+                "attachments": [
+                    {
+                        "color": "#f2c744",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `${messageText}`
+                                }
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `by ${user}`
+                                }
+                            }
+                        ]
+                    }
+                ],
+            };
+
+            await postMessage(channelID, replyMessageData);
         }
-
-    } else {
-        const thread_ts = taskThreads.parentTs;
-        const replyMessageData = {
-            channel: channelID,
-            thread_ts: thread_ts,
-            "attachments": [
-                {
-                    "color": "#f2c744",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": `${messageText}`
-                            }
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": `by ${user}`
-                            }
-                        }
-                    ]
-                }
-            ],
-        };
-
-        await postMessage(channelID, replyMessageData);
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Error in postMessageToSlack:', error);
+        res.status(500).json({ error: 'An error occurred' });
     }
 };
+
 
 
 module.exports = { getChannels, formatCommentForSlackMentions, postMessageToSlack };

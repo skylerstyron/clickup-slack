@@ -155,7 +155,7 @@ const postMessageToSlack = async (channelID, taskURL, taskId, taskName, messageT
 
             await postMessage(channelID, replyMessageData);
         }
-        res.sendStatus(200);
+
     } catch (error) {
         console.error('Error in postMessageToSlack:', error);
         res.status(500).json({ error: 'An error occurred' });

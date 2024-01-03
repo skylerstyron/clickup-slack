@@ -2,7 +2,7 @@ const { Channel } = require('../mongoDB');
 
 const findChannelNameByListName = async (listName) => {
   try {
-    const prefixRegex = /\((.*?) ?- ?\d+\)$/; // Regular expression to extract the prefix
+    const prefixRegex = /\(([A-Z]{3})\s?-?\s?(\d{4})\)$/; // Regular expression to extract the prefix
     const match = listName.match(prefixRegex);
 
     // Try to find a match using the regular expression

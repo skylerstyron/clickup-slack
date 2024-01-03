@@ -139,12 +139,6 @@ router.post('/clickup-webhook', async (req, res) => {
         const taskId = webhookData.comment.parent;
         const user = webhookData.user.username;
 
-        if (comment.includes("[API_COMMENT]")) {
-            console.log("This comment originated from the API. Skipping processing.");
-            res.sendStatus(200);
-            return;
-        }
-
         const taskInfo = await getClickUpTaskInfo(taskId);
 
         if (!taskInfo) {
